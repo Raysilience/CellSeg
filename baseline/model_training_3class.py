@@ -52,21 +52,21 @@ print('Successfully import all requirements!')
 def main():
     parser = argparse.ArgumentParser('Baseline for Microscopy image segmentation', add_help=False)
     # Dataset parameters
-    parser.add_argument('--data_path', default='./data/Train_Pre_3class/', type=str,
+    parser.add_argument('--data_path', default='/root/CellSeg/data/Train_Pre_3class/', type=str,
                         help='training data path; subfolders: images, labels')
-    parser.add_argument('--work_dir', default='./work_dir',
+    parser.add_argument('--work_dir', default='/root/CellSeg/work_dir',
                         help='path where to save models and logs')
     parser.add_argument('--seed', default=2022, type=int)
     parser.add_argument('--resume', default=False,
                         help='resume from checkpoint')
-    parser.add_argument('--num_workers', default=4, type=int)
+    parser.add_argument('--num_workers', default=12, type=int)
 
     # Model parameters
     parser.add_argument('--model_name', default='unet', help='select mode: unet, unetr, swinunetr')
     parser.add_argument('--num_class', default=3, type=int, help='segmentation classes')
     parser.add_argument('--input_size', default=256, type=int, help='segmentation classes')
     # Training parameters
-    parser.add_argument('--batch_size', default=8, type=int, help='Batch size per GPU')
+    parser.add_argument('--batch_size', default=64, type=int, help='Batch size per GPU')
     parser.add_argument('--max_epochs', default=2000, type=int)
     parser.add_argument('--val_interval', default=2, type=int) 
     parser.add_argument('--epoch_tolerance', default=100, type=int)
@@ -115,7 +115,7 @@ def main():
             RandGaussianSmoothd(keys=["img"], prob=0.25, sigma_x=(1,2)),
             RandHistogramShiftd(keys=["img"], prob=0.25, num_control_points=3),
             RandZoomd(keys=["img", "label"], prob=0.15, min_zoom=0.8, max_zoom=1.5, mode=['area', 'nearest']),
-            EnsureTyped(keys=["img", "label"]),
+            EnsureTyped(keys=["img", "label"], dtype=torch.float),
         ]
     )
 
@@ -148,7 +148,7 @@ def main():
     )
     # create a validation data loader
     val_ds = monai.data.Dataset(data=val_files, transform=val_transforms)
-    val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, num_workers=1)
+    val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
     dice_metric = DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
 
