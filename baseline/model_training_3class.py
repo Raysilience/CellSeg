@@ -62,11 +62,11 @@ def main():
     parser.add_argument('--num_workers', default=12, type=int)
 
     # Model parameters
-    parser.add_argument('--model_name', default='unet', help='select mode: unet, unetr, swinunetr')
+    parser.add_argument('--model_name', default='unetr', help='select mode: unet, unetr, swinunetr')
     parser.add_argument('--num_class', default=3, type=int, help='segmentation classes')
     parser.add_argument('--input_size', default=256, type=int, help='segmentation classes')
     # Training parameters
-    parser.add_argument('--batch_size', default=64, type=int, help='Batch size per GPU')
+    parser.add_argument('--batch_size', default=32, type=int, help='Batch size per GPU')
     parser.add_argument('--max_epochs', default=2000, type=int)
     parser.add_argument('--val_interval', default=2, type=int) 
     parser.add_argument('--epoch_tolerance', default=100, type=int)
