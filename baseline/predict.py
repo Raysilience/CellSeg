@@ -1,5 +1,9 @@
 
 import os
+
+from PIL import Image
+from tqdm import tqdm
+
 join = os.path.join
 import argparse
 import numpy as np
@@ -23,9 +27,9 @@ def normalize_channel(img, lower=1, upper=99):
 def main():
     parser = argparse.ArgumentParser('Baseline for Microscopy image segmentation', add_help=False)
     # Dataset parameters
-    parser.add_argument('-i', '--input_path', default='./inputs', type=str, help='training data path; subfolders: images, labels')
-    parser.add_argument("-o", '--output_path', default='./outputs', type=str, help='output path')
-    parser.add_argument('--model_path', default='./work_dir/swinunetr_3class', help='path where to save models and segmentation results')
+    parser.add_argument('-i', '--input_path', default='/root/CellSeg/data/TuningSet', type=str, help='training data path; subfolders: images, labels')
+    parser.add_argument("-o", '--output_path', default='/root/CellSeg/outputs/tuning', type=str, help='output path')
+    parser.add_argument('--model_path', default='/root/CellSeg/baseline/work_dir/swinunetr_3class', help='path where to save models and segmentation results')
     parser.add_argument('--show_overlay', required=False, default=False, action="store_true", help='save segmentation overlay')
 
     # Model parameters
@@ -84,7 +88,7 @@ def main():
     sw_batch_size = 4
     model.eval()
     with torch.no_grad():
-        for img_name in img_names:
+        for img_name in tqdm(img_names):
             if img_name.endswith('.tif') or img_name.endswith('.tiff'):
                 img_data = tif.imread(join(input_path, img_name))
             else:
@@ -111,6 +115,9 @@ def main():
             test_pred_npy = test_pred_out[0,1].cpu().numpy()
             # convert probability map to binary mask and apply morphological postprocessing
             test_pred_mask = measure.label(morphology.remove_small_objects(morphology.remove_small_holes(test_pred_npy>0.5),16))
+
+            # result = Image.fromarray(test_pred_mask)
+            # result.save(join(output_path, img_name.split('.')[0]+'_label.png'))
             tif.imwrite(join(output_path, img_name.split('.')[0]+'_label.tiff'), test_pred_mask, compression='zlib')
             t1 = time.time()
             print(f'Prediction finished: {img_name}; img size = {pre_img_data.shape}; costing: {t1-t0:.2f}s')

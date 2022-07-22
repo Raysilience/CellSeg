@@ -1,5 +1,16 @@
+import logging
+from os import PathLike
+from pathlib import Path
+from typing import List, Union
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import skimage.segmentation
+from PIL import Image
+from tqdm import tqdm
+
+from baseline.utils.misc import load_img
 
 
 def intersection_over_union(ground_truth, prediction):
@@ -51,6 +62,24 @@ def measures_at(threshold, IOU):
     recall = TP / (TP + FN + 1e-9)
 
     return f1, TP, FP, FN, official_score, precision, recall
+
+
+def avg_f1(labels: List[Union[str, PathLike]], preds: List[Union[str, PathLike]], thresh: float = 0.5):
+    if len(labels) != len(preds):
+        logging.error("labels and preds don't match")
+        return None
+    f1 = 0.0
+    labels = sorted(labels)
+    preds = sorted(preds)
+    for i in tqdm(range(len(labels))):
+        gt = load_img(labels[i])
+        pr = load_img(preds[i])
+        iou = intersection_over_union(gt, pr)
+        curr, *_ = measures_at(thresh, iou)
+        # print(curr)
+        f1 = f1 + (curr - f1) / (i + 1)
+
+    return f1
 
 
 # Compute Average Precision for all IoU thresholds
@@ -116,10 +145,35 @@ def get_splits_and_merges(ground_truth, prediction, results, image_name):
 
 
 if __name__ == '__main__':
-    gt = np.zeros((3, 3))
-    gt[1, 1] = 1
-    print(gt)
+    # label_file = "/root/CellSeg/data/Train_Pre_3class/labels/cell_00001_label.png"
+    gt_dir = "/root/CellSeg/data/Train_Labeled/labels/"
+    pr_dir = "/root/CellSeg/outputs/swinunetr/"
+    gt_lst = list(Path(gt_dir).glob('*'))
+    pr_lst = list(Path(pr_dir).glob('*'))
+
+    print(avg_f1(gt_lst, pr_lst))
+
+    gt = np.zeros((5, 5))
+    gt[1:3, 1:3] = 1
+    # print(gt)
     pred = np.zeros_like(gt)
-    pred[1, 1] = 1
-    pred[1, 2] = 2
-    intersection_over_union(gt, pred)
+    pred[:2, :2] = 2
+    pred[2:, 2:] = 1
+    pred[3, 3] = 0
+    # print(pred)
+    gt = skimage.morphology.label(gt)
+    pred = skimage.morphology.label(pred)
+
+    res = intersection_over_union(gt, pred)
+    # print(gt, pred)
+    # kernel = skimage.morphology.square(1)
+    # pred = skimage.morphology.dilation(pred, kernel)
+    # print(kernel)
+    # print(pred)
+    # intersection_over_union(gt, pred)
+    # gt = skimage.segmentation.relabel_sequential(gt)[0]
+    # pred = skimage.segmentation.relabel_sequential(pred)[0]
+    print(res)
+    measures_at(0, res)
+    # res = skimage.morphology.label(gt)
+
